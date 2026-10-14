@@ -15,7 +15,7 @@
    * have not blocked you and you have not blocked them.
 5. **Alerts are de-duplicated.** Each person gets at most one alert about the same member within their cooldown (default 12 h, adjustable 1 h–7 days), and at most 10 alerts a day. A per-pair database lock stops two phones reporting at the same instant from creating two alerts.
 6. **The alert says nothing identifying:** "A fellow Malayali is nearby. Would you like to discover your community?" Tapping it opens Discover. An encounter never creates a connection or grants access to anything.
-7. **Push delivery** goes through a queue: the notification is stored first (so it always appears in the in-app notification centre), then the `send-push` function sends it via Expo to APNs/FCM and records the actual result. Rows are marked `sent` only if Expo accepted them; otherwise `failed` (after 3 tries) or `skipped` (push turned off for that category, or no registered device). Stale pushes (over an hour old) are skipped rather than delivered late.
+7. **Push delivery** goes through a queue: the notification is stored first (so it always appears in the in-app notification centre), then the `send-push` function sends it via Expo to APNs/FCM and records the actual result. Rows are marked `sent` only if Expo accepted them, then `delivered` once Apple/Google accepted them (checked through Expo receipts); otherwise `failed` (after 3 tries) or `skipped` (push turned off for that category, or no registered device). Stale pushes (over an hour old) are skipped rather than delivered late.
 
 ## Privacy protections (all enforced in the database)
 
@@ -38,11 +38,23 @@
 * **Android:** a persistent "Proximity alerts are on" notification is required by Android while alerts run. Some manufacturers (Xiaomi, Huawei, OnePlus, Samsung, Oppo/Realme, Vivo) aggressively kill background apps; members may need to set NearMalayali to "unrestricted" battery use. See https://dontkillmyapp.com.
 * **Both people need alerts on** and recent locations. If the other person's phone hasn't reported in 15 minutes, they won't match.
 * **GPS accuracy indoors** is often 50–100 m, so the 100 m alert distance can miss people indoors; 500 m is the default for that reason.
-* **Expo "sent" ≠ delivered.** Expo accepting a push means it was handed to Apple/Google. Delivery receipts are not yet checked (planned for Stage D).
+* **"Delivered" means Apple or Google accepted the push**, confirmed through Expo's receipts about 15 minutes later. It can't prove the phone displayed it: Focus modes, notification settings and a phone that stays offline can still stop it.
 
 ## Battery
 
-Balanced accuracy, ≥100 m distance filter, a 2-minute minimum interval on Android, no continuous GPS, and no background work at all unless proximity alerts are on. Expect a small single-digit percentage per day for an active member who moves around; stationary phones barely report. To be measured on real devices in Stage D.
+Balanced accuracy, ≥100 m distance filter, a 2-minute minimum interval on Android, no continuous GPS, and no background work at all unless proximity alerts are on. Expect a small single-digit percentage per day for an active member who moves around; stationary phones barely report. **This has not been measured yet**: it needs real phones. Use the protocol below before launch and record the numbers here.
+
+### Battery measurement protocol
+
+Use one iPhone and one mid-range Android phone (ideally one Samsung or Xiaomi, which restrict background apps the most), with a release-like build (`eas build --profile preview`).
+
+1. Charge both to 100 %, close other apps, keep brightness and network settings the same for every run.
+2. **Baseline day:** NearMalayali installed, signed in, discovery and alerts **off**. Normal routine (commute, work, home). Note the battery % at 8 am, 1 pm, 6 pm and 10 pm, and the per-app figure in Settings › Battery.
+3. **Alerts day:** same routine with discovery **and** proximity alerts on (500 m, "Always"/"All the time" location).
+4. **Stationary day:** alerts on, phone left at home on a desk.
+5. Record: NearMalayali's share of battery use (iOS Settings › Battery › last 24 h; Android Settings › Battery › usage by app), the number of rows that phone wrote (`select count(*) from rate_limits where user_id = '…' and action = 'report_location'` within the day, before the purge), and any alerts received.
+
+Acceptance target: on the alerts day, NearMalayali uses no more than about 3–5 % of a full charge, and close to 0 % on the stationary day. If higher, raise the distance filter (`distanceInterval` in `src/lib/location.ts`) or the Android interval before raising accuracy.
 
 ## Store review notes
 

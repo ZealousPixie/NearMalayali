@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { fetchOwnProfile } from '@/lib/api';
 import { env } from '@/lib/env';
@@ -73,6 +74,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
       sub.subscription.unsubscribe();
     };
   }, [loadProfile]);
+
+  // Re-check the account when the app returns to the foreground, so a
+  // suspension (or a reactivation on another device) takes effect.
+  useEffect(() => {
+    if (!session) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') loadProfile(session);
+    });
+    return () => sub.remove();
+  }, [session, loadProfile]);
+
+  // A deactivated or suspended account must not keep reporting its location.
+  const inactive = profile !== null && profile.account_status !== 'active';
+  useEffect(() => {
+    if (inactive) stopAllTracking().catch(() => undefined);
+  }, [inactive]);
 
   const refreshProfile = useCallback(async () => {
     const { data } = await supabase.auth.getSession();

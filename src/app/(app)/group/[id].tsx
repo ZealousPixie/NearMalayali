@@ -262,6 +262,14 @@ export default function GroupScreen() {
       ) : null}
 
       {role ? <Button title="Leave group" variant="danger" icon="exit-outline" onPress={confirmLeave} /> : null}
+      {role !== 'owner' ? (
+        <Button
+          title="Report group"
+          variant="ghost"
+          icon="flag-outline"
+          onPress={() => router.push({ pathname: '/report', params: { type: 'group', id, name: group.name } })}
+        />
+      ) : null}
     </Screen>
   );
 }

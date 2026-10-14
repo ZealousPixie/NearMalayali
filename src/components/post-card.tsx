@@ -90,6 +90,11 @@ export function PostCard({
       });
     } else {
       options.push({ text: 'View profile', onPress: () => router.push({ pathname: '/profile/[id]', params: { id: post.author_id } }) });
+      options.push({
+        text: 'Report post',
+        onPress: () =>
+          router.push({ pathname: '/report', params: { type: 'post', id: post.id, name: post.author_name, user: post.author_id } }),
+      });
       if (post.group_id && canModerate) {
         options.push({
           text: 'Remove from group',

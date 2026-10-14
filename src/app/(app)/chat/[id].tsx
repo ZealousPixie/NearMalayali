@@ -3,7 +3,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -189,7 +189,16 @@ export default function ChatScreen() {
               },
             },
           ]
-        : []),
+        : [
+            {
+              text: 'Report message',
+              onPress: () =>
+                router.push({
+                  pathname: '/report',
+                  params: { type: 'message', id: String(m.id), name: names.get(m.sender_id ?? '') ?? '', user: m.sender_id ?? '' },
+                }),
+            },
+          ]),
       { text: 'Cancel', style: 'cancel' as const },
     ]);
   }
@@ -215,7 +224,7 @@ export default function ChatScreen() {
 
   const other = details?.kind === 'direct' ? details.members.find((m) => m.user_id !== me) : undefined;
   const title = details?.kind === 'group' ? details.title ?? 'Group' : other?.display_name ?? 'Chat';
-  const names = useMemo(() => new Map(details?.members.map((m) => [m.user_id, m.display_name]) ?? []), [details]);
+  const names = new Map(details?.members.map((m) => [m.user_id, m.display_name]) ?? []);
 
   function confirmBlock() {
     if (!other) return;

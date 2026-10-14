@@ -77,6 +77,18 @@ $$;
 revoke execute on function public.is_moderator() from public, anon;
 grant execute on function public.is_moderator() to authenticated;
 
+create or replace function public.my_roles()
+returns text[]
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce(array_agg(role::text order by role), '{}') from public.user_roles where user_id = (select auth.uid())
+$$;
+revoke execute on function public.my_roles() from public, anon;
+grant execute on function public.my_roles() to authenticated;
+
 create or replace function public.require_moderator()
 returns uuid
 language plpgsql
@@ -255,7 +267,8 @@ create policy "moderators read reported media"
 -- ---------------------------------------------------------------------------
 -- Moderation queue
 -- ---------------------------------------------------------------------------
-create or replace function public.mod_list_reports(p_status text default 'open', p_limit int default 50, p_offset int default 0)
+create or replace function public.mod_list_reports(p_status text default 'open', p_limit int default 50, p_offset int default 0,
+                                                   p_id bigint default null)
 returns table (
   id bigint, target_type text, target_id text, reason text, details text, snapshot jsonb, status text,
   created_at timestamptz, reporter_username text, target_user_id uuid, target_username text,
@@ -279,7 +292,8 @@ begin
     left join public.profiles rp on rp.id = r.reporter_id
     left join public.profiles tp on tp.id = r.target_user_id
     left join public.profiles hp on hp.id = r.handled_by
-   where case when p_status = 'all' then true
+   where (p_id is null or r.id = p_id)
+     and case when p_id is not null or p_status = 'all' then true
               when p_status = 'open' then r.status in ('open', 'reviewing')
               else r.status = p_status end
    -- Safety-critical reasons first, then oldest first.
@@ -619,7 +633,7 @@ end $$;
 
 revoke execute on function
   public.report_content(text, text, text, text), public.my_reports(), public.my_restriction(),
-  public.mod_list_reports(text, int, int), public.mod_open_report_count(), public.mod_resolve_report(bigint, text, text),
+  public.mod_list_reports(text, int, int, bigint), public.mod_open_report_count(), public.mod_resolve_report(bigint, text, text),
   public.mod_remove_content(text, text, text, bigint), public.mod_warn_user(uuid, text, bigint),
   public.mod_suspend_user(uuid, int, text, bigint), public.mod_unsuspend_user(uuid, text),
   public.mod_find_users(text), public.mod_user_summary(uuid), public.admin_set_role(uuid, public.app_role, boolean),
@@ -627,7 +641,7 @@ revoke execute on function
   from public, anon;
 grant execute on function
   public.report_content(text, text, text, text), public.my_reports(), public.my_restriction(),
-  public.mod_list_reports(text, int, int), public.mod_open_report_count(), public.mod_resolve_report(bigint, text, text),
+  public.mod_list_reports(text, int, int, bigint), public.mod_open_report_count(), public.mod_resolve_report(bigint, text, text),
   public.mod_remove_content(text, text, text, bigint), public.mod_warn_user(uuid, text, bigint),
   public.mod_suspend_user(uuid, int, text, bigint), public.mod_unsuspend_user(uuid, text),
   public.mod_find_users(text), public.mod_user_summary(uuid), public.admin_set_role(uuid, public.app_role, boolean),

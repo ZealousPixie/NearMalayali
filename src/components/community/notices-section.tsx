@@ -91,7 +91,15 @@ export function NoticesSection() {
           {n.is_mine ? (
             <Button title="Delete notice" variant="ghost" icon="trash-outline" onPress={() => remove(n)} />
           ) : (
-            <Button title={`Message ${n.author_name}`} variant="secondary" icon="chatbubble-outline" onPress={() => contact(n)} />
+            <>
+              <Button title={`Message ${n.author_name}`} variant="secondary" icon="chatbubble-outline" onPress={() => contact(n)} />
+              <Button
+                title="Report notice"
+                variant="ghost"
+                icon="flag-outline"
+                onPress={() => router.push({ pathname: '/report', params: { type: 'notice', id: n.id, name: n.author_name, user: n.author_id } })}
+              />
+            </>
           )}
         </Card>
       ))}

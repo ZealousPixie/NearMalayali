@@ -1,11 +1,16 @@
 import { router } from 'expo-router';
+import { useCallback } from 'react';
 import { Alert } from 'react-native';
 
 import { AppText, Card, Divider, ListRow, Screen } from '@/components/ui';
+import { useAsync } from '@/hooks/use-async';
+import { isModerator } from '@/lib/moderation';
 import { useAuth } from '@/providers/auth-provider';
 
 export default function SettingsHome() {
   const { signOut, session } = useAuth();
+  const checkModerator = useCallback(() => isModerator().catch(() => false), []);
+  const { data: moderator } = useAsync(checkModerator);
 
   function confirmSignOut() {
     Alert.alert('Sign out?', undefined, [
@@ -26,7 +31,14 @@ export default function SettingsHome() {
         <ListRow icon="notifications-outline" label="Notifications" onPress={() => router.push('/settings/notifications')} />
         <Divider />
         <ListRow icon="ban-outline" label="Blocked people" onPress={() => router.push('/settings/blocked')} />
+        <Divider />
+        <ListRow icon="flag-outline" label="My reports" detail="What happened to things you reported" onPress={() => router.push('/settings/reports')} />
       </Card>
+      {moderator ? (
+        <Card>
+          <ListRow icon="shield-checkmark-outline" label="Moderation" detail="Reports queue, members, audit log" onPress={() => router.push('/moderation')} />
+        </Card>
+      ) : null}
       <Card>
         <ListRow icon="key-outline" label="Account" detail={session?.user.email} onPress={() => router.push('/settings/account')} />
         <Divider />

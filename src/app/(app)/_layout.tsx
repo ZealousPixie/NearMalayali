@@ -53,6 +53,13 @@ export default function AppLayout() {
       <Stack.Screen name="event-form" options={{ title: 'Event' }} />
       <Stack.Screen name="notice-form" options={{ title: 'New notice' }} />
       <Stack.Screen name="invite" options={{ title: 'Invite' }} />
+      <Stack.Screen name="report" options={{ title: 'Report', presentation: 'modal' }} />
+      <Stack.Screen name="settings/reports" options={{ title: 'My reports' }} />
+      <Stack.Screen name="moderation/index" options={{ title: 'Moderation' }} />
+      <Stack.Screen name="moderation/report/[id]" options={{ title: 'Report' }} />
+      <Stack.Screen name="moderation/users" options={{ title: 'Find a member' }} />
+      <Stack.Screen name="moderation/user/[id]" options={{ title: 'Member' }} />
+      <Stack.Screen name="moderation/audit" options={{ title: 'Audit log' }} />
       <Stack.Screen name="location-permission" options={{ title: '', presentation: 'modal' }} />
     </Stack>
   );

@@ -25,6 +25,7 @@ Later stages: a Google Maps API key for Android maps (the mobile Maps SDK is fre
    supabase db push                                   # applies supabase/migrations/*
    supabase functions deploy delete-account
    supabase functions deploy send-push --no-verify-jwt
+   supabase functions deploy cleanup-media --no-verify-jwt
    ```
 4. In the dashboard, **Database → Extensions**: enable `pg_cron` (used to purge stale locations every 15 min). Then re-run `supabase db push` or run this once in the SQL editor:
    ```sql
@@ -50,6 +51,16 @@ Proximity alerts and other notifications are stored in the database and then sen
 6. Optional: set `EXPO_ACCESS_TOKEN` on the function (`supabase secrets set`) if you enable "enhanced push security" in Expo.
 
 If any of this is missing, notifications still appear in the in-app notification centre; nothing is shown as sent unless Expo accepted it.
+
+### Moderation and maintenance jobs (Stage D)
+
+* **Make yourself an admin** (below), then grant moderators from the app: Settings › Moderation › Find a member › Roles. How moderation works: [MODERATION.md](MODERATION.md).
+* **Push receipts:** nothing extra to configure. `send-push` now also asks Expo whether Apple/Google accepted each push and marks notifications `delivered` or `failed`.
+* **Photo cleanup:** deploy `cleanup-media` (above). It uses the same `PUSH_DISPATCH_SECRET`. With pg_cron, the migrations schedule it nightly; otherwise run once in the SQL editor:
+  ```sql
+  select cron.schedule('media-cleanup', '30 3 * * *', 'select public.kick_media_cleanup()');
+  select cron.schedule('lift-suspensions', '*/15 * * * *', 'select public.lift_expired_suspensions()');
+  ```
 
 ### Chat, feed and events (Stage C)
 
@@ -80,7 +91,7 @@ If any of this is missing, notifications still appear in the in-app notification
 
 ### Create your admin account
 
-After you sign up in the app, make yourself an administrator (the moderation dashboard arrives in Stage D) in the SQL editor:
+After you sign up in the app, make yourself an administrator in the SQL editor (the Moderation section then appears in Settings):
 ```sql
 insert into public.user_roles (user_id, role)
 select id, 'admin' from auth.users where email = 'you@example.com';

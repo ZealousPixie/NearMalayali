@@ -60,6 +60,15 @@ export default function PostScreen() {
     Alert.alert(cm.author_name, undefined, [
       ...(cm.parent_id === null && !cm.deleted ? [{ text: 'Reply', onPress: () => setReplyTo(cm) }] : []),
       ...(cm.author_id ? [{ text: 'View profile', onPress: () => router.push({ pathname: '/profile/[id]', params: { id: cm.author_id! } }) }] : []),
+      ...(cm.author_id && cm.author_id !== session?.user.id && !cm.deleted
+        ? [
+            {
+              text: 'Report comment',
+              onPress: () =>
+                router.push({ pathname: '/report', params: { type: 'comment', id: String(cm.id), name: cm.author_name, user: cm.author_id! } }),
+            },
+          ]
+        : []),
       ...(canDelete
         ? [
             {

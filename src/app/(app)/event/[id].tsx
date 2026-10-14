@@ -158,6 +158,15 @@ export default function EventScreen() {
         </View>
       ) : null}
 
+      {!event.is_host ? (
+        <Button
+          title="Report event"
+          variant="ghost"
+          icon="flag-outline"
+          onPress={() => router.push({ pathname: '/report', params: { type: 'event', id, name: event.host_name, user: event.host_id } })}
+        />
+      ) : null}
+
       <AppText variant="subtitle">Who's coming</AppText>
       {attendees.length ? (
         attendees.map((a) => <PersonRow key={a.user_id} person={{ ...a, id: a.user_id }} detail={a.status === 'going' ? 'Going' : 'Interested'} />)

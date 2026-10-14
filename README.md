@@ -33,7 +33,7 @@ docs/               architecture, setup
 | A. Foundation: auth, onboarding, profiles, privacy settings, database security | **Built; database and unit tests pass. Not yet run on a device.** |
 | B. Nearby discovery, map, proximity alerts, push | **Built; database and unit tests pass. Needs two real phones to test (checklist in docs/LOCATION.md).** |
 | C. Connections, messaging, feed, groups, events, noticeboard | **Built; database and unit tests pass. Not yet run on a device.** |
-| D. Reporting, moderation, safety and lifecycle testing | Not started |
+| D. Reporting, moderation, safety and lifecycle testing | **Built; database and unit tests pass. Battery and device checks need real phones (protocols in docs/LOCATION.md).** |
 | E. Store submission, costs, limitations | Not started |
 
 Screens for unbuilt features say "Not yet implemented" with the stage that delivers them; nothing pretends to work.
@@ -66,10 +66,20 @@ Screens for unbuilt features say "Not yet implemented" with the stage that deliv
 * **Noticeboard:** accommodation, jobs, for sale, rides, services, lost & found, announcements and help wanted; notices expire after 1–60 days, need an account at least 3 days old, are limited to 3 a day, and are answered by in-app message. No payments are handled.
 * Messages are encrypted in transit and at rest by Supabase but are **not end-to-end encrypted**; the app says so in every chat.
 
+### What Stage D includes
+
+* **Reporting** of profiles, posts, comments, messages, groups, events and notices, with eleven reasons, optional details and "also block". Reports keep a snapshot as evidence (for messages, only the reported message). Members follow outcomes in Settings › My reports.
+* **Moderation inside the app** for moderators and admins: a prioritised queue, report detail with captured content and photos, dismiss / remove content / warn / suspend (1–30 days; indefinite for admins), member lookup with history, role management and the audit log. See [docs/MODERATION.md](docs/MODERATION.md).
+* **Suspensions** hide the member everywhere, stop their location and push, show them the reason and end date, and lift themselves automatically.
+* **Push receipts:** notifications are now marked `delivered` only when Apple/Google accepted them, or `failed` with the reason; dead devices are unregistered.
+* **Cleanup:** a nightly job removes photos that nothing refers to any more (unsent messages, deleted posts, replaced avatars), keeping photos under open reports.
+* **Account deletion** now also blanks the member's messages and comments for everyone and removes their post photos.
+* **Reliability:** the app re-checks the account when it returns to the foreground (so a suspension or reactivation applies), and every database error code has a plain-language message (enforced by a test).
+
 ### Tested here (in a Linux container, 2026-10-14)
 
-* `npm run test:db`: 225 pgTAP assertions over RLS, column privileges, blocking, visibility, onboarding rules, rate limiting, storage folders, location reporting, nearby/area/map privacy, proximity matching, cooldowns, the push queue, connection requests, follows, messaging and message requests, chat and post media access, groups and roles, post visibility and the feed, events (capacity, address and attendee privacy, reminders) and the noticeboard, against Postgres 16 + PostGIS 3.
-* `npm test`: 26 Jest tests (validation, error mapping, sign-in screen, location reporting, notification routing, time formatting, post card actions).
+* `npm run test:db`: 277 pgTAP assertions over RLS, column privileges, blocking, visibility, onboarding rules, rate limiting, storage folders, location reporting, nearby/area/map privacy, proximity matching, cooldowns, the push queue, connection requests, follows, messaging and message requests, chat and post media access, groups and roles, post visibility and the feed, events (capacity, address and attendee privacy, reminders) and the noticeboard, reporting and moderation (permissions, evidence snapshots, removals, suspensions, roles, audit, moderator media access), account deactivation and deletion, push receipts and orphaned-file detection, against Postgres 16 + PostGIS 3.
+* `npm test`: 87 Jest tests (validation, error mapping including a check that every database error code has a message, sign-in screen, location reporting, notification routing, time formatting, post card actions, report screen).
 * `deno test supabase/functions/` and `deno check`: Edge Functions type-check; lock-screen privacy tests pass.
 * `expo prebuild`: Android manifest and iOS Info.plist contain the expected background-location, foreground-service and permission strings.
 * `npm run typecheck` (including typed routes) and `npm run lint`: clean.
@@ -82,8 +92,7 @@ Not tested yet: anything on real iOS/Android devices or simulators (including ba
 * Google, Apple and phone sign-in are not implemented yet (email + password only).
 * Changing your email address is not in the app yet.
 * Legal texts are drafts for a lawyer to review.
-* Push delivery receipts (Expo's second step) are not checked yet; "sent" means Expo accepted the push.
-* Reporting people, posts and messages arrives in Stage D and is labelled as such in the app.
+* No automatic image or text scanning yet; moderation is report-driven. See docs/MODERATION.md for options before launch.
 * Voice notes and video messages aren't supported yet; chats and posts take text and photos.
-* When someone unsends a photo, the message is removed for everyone immediately; the file itself is then deleted by the sender's app. If that second step fails (for example the phone goes offline), the file stays in private chat storage, where only members of that chat could still open it with a link they had already loaded. A server-side cleanup job is planned for Stage D.
+* When someone unsends a photo, the message is removed for everyone immediately; the file itself is then deleted by the sender's app. If that second step fails (for example the phone goes offline), the file stays in private chat storage, where only members of that chat could still open it with a link they had already loaded. The nightly cleanup job then removes it.
 * Typing indicators and online status settings exist but aren't shown yet.
