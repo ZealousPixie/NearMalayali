@@ -427,3 +427,6 @@ enabled = true
 # send-push is called by the database with a shared secret, not a user JWT.
 [functions.send-push]
 verify_jwt = false
+
+[functions.cleanup-media]
+verify_jwt = false

@@ -5,11 +5,14 @@
 // shared secret in the x-push-secret header. It claims a batch, sends it,
 // and records the real result per notification. A notification is marked
 // "sent" only when Expo accepted it for at least one of the user's devices.
-import { createClient } from 'npm:@supabase/supabase-js@2';
+// Each run also checks Expo receipts for earlier pushes and marks them
+// "delivered" (accepted by Apple/Google) or "failed".
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { json } from '../_shared/cors.ts';
 import { type Claimed, lockScreenText } from './text.ts';
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
+const EXPO_RECEIPTS_URL = 'https://exp.host/--/api/v2/push/getReceipts';
 const BATCH = 100;
 
 
@@ -61,13 +64,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    const tickets: { ticket_id: string; notification_id: number; token: string }[] = [];
     const okByNotification = new Map<number, boolean>();
     const errorByNotification = new Map<number, string>();
     const deadTokens: string[] = [];
 
     for (let i = 0; i < messages.length; i += 100) {
       const chunk = messages.slice(i, i + 100);
-      let tickets: ExpoTicket[] = [];
+      let chunkTickets: ExpoTicket[] = [];
       try {
         const res = await fetch(EXPO_PUSH_URL, {
           method: 'POST',
@@ -79,15 +83,16 @@ Deno.serve(async (req) => {
           body: JSON.stringify(chunk.map((m) => m.payload)),
         });
         if (!res.ok) throw new Error(`Expo push HTTP ${res.status}`);
-        tickets = ((await res.json()) as { data: ExpoTicket[] }).data ?? [];
+        chunkTickets = ((await res.json()) as { data: ExpoTicket[] }).data ?? [];
       } catch (e) {
         for (const m of chunk) errorByNotification.set(m.notificationId, String(e));
         continue;
       }
       chunk.forEach((m, idx) => {
-        const t = tickets[idx];
+        const t = chunkTickets[idx];
         if (t?.status === 'ok') {
           okByNotification.set(m.notificationId, true);
+          if (t.id) tickets.push({ ticket_id: t.id, notification_id: m.notificationId, token: m.token });
         } else {
           errorByNotification.set(m.notificationId, t?.details?.error ?? t?.message ?? 'UNKNOWN');
           if (t?.details?.error === 'DeviceNotRegistered') deadTokens.push(m.token);
@@ -96,6 +101,7 @@ Deno.serve(async (req) => {
     }
 
     if (deadTokens.length) await admin.rpc('remove_push_tokens', { p_tokens: deadTokens });
+    if (tickets.length) await admin.rpc('record_push_tickets', { p_tickets: tickets });
 
     for (const n of batch) {
       const ok = okByNotification.get(n.notification_id) === true;
@@ -111,5 +117,42 @@ Deno.serve(async (req) => {
     if (batch.length < BATCH) break;
   }
 
-  return json({ sent, failed });
+  const receipts = await checkReceipts(admin, accessToken);
+  return json({ sent, failed, receipts });
 });
+
+// Asks Expo what Apple/Google said about pushes sent 15+ minutes ago.
+async function checkReceipts(
+  admin: SupabaseClient,
+  accessToken: string | undefined,
+): Promise<{ checked: number } | { error: string }> {
+  const { data, error } = await admin.rpc('claim_receipt_batch', { p_limit: 1000 });
+  if (error) return { error: error.message };
+  const ids = ((data ?? []) as { ticket_id: string }[]).map((r) => r.ticket_id);
+  if (!ids.length) return { checked: 0 };
+  try {
+    const res = await fetch(EXPO_RECEIPTS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify({ ids }),
+    });
+    if (!res.ok) return { error: `Expo receipts HTTP ${res.status}` };
+    const body = (await res.json()) as { data?: Record<string, { status: 'ok' | 'error'; message?: string; details?: { error?: string } }> };
+    const receipts = Object.entries(body.data ?? {}).map(([ticket_id, r]) => ({
+      ticket_id,
+      status: r.status,
+      error: r.status === 'error' ? (r.details?.error ?? r.message ?? 'UNKNOWN') : null,
+    }));
+    if (receipts.length) {
+      const { error: recordError } = await admin.rpc('record_push_receipts', { p_receipts: receipts });
+      if (recordError) return { error: recordError.message };
+    }
+    return { checked: receipts.length };
+  } catch (e) {
+    return { error: String(e) };
+  }
+}

@@ -8,7 +8,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, json } from '../_shared/cors.ts';
 
-const MEDIA_BUCKETS = ['profile-media'];
+// Buckets with per-user folders. Chat photos are removed by the cleanup-media
+// job once the database has erased the messages that referenced them.
+const MEDIA_BUCKETS = ['profile-media', 'post-media'];
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
