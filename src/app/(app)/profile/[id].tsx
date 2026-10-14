@@ -5,14 +5,17 @@ import { Alert } from 'react-native';
 
 import { ProfileView } from '@/components/profile-view';
 import { RelationshipActions } from '@/components/relationship-actions';
+import { UserPosts } from '@/components/user-posts';
 import { Banner, Button, EmptyState, ErrorView, LoadingView, NotYetAvailable, Screen } from '@/components/ui';
 import { blockUser, getProfile } from '@/lib/api';
 import { useAsync } from '@/hooks/use-async';
 import { friendlyError } from '@/lib/errors';
 import type { PublicProfile } from '@/lib/types';
+import { useAuth } from '@/providers/auth-provider';
 
 export default function OtherProfile() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { session } = useAuth();
   const [actionError, setActionError] = useState<string | null>(null);
   const fetchProfile = useCallback(() => getProfile(id), [id]);
   const { data: profile, error, reload: load } = useAsync<PublicProfile | null>(fetchProfile);
@@ -58,6 +61,7 @@ export default function OtherProfile() {
       <RelationshipActions userId={profile.id} name={profile.display_name} />
       <Button title={`Block ${profile.display_name}`} variant="danger" icon="ban" onPress={confirmBlock} />
       <NotYetAvailable stage="Stage D" feature="Report this profile" details="Reporting to moderators arrives with the safety tools. Blocking works now." />
+      {session ? <UserPosts userId={profile.id} me={session.user.id} /> : null}
     </Screen>
   );
 }

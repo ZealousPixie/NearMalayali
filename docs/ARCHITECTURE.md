@@ -72,7 +72,7 @@ The other user's phone does not need to be broadcasting: each phone reports inde
 
 Stage A: `profiles`, `profile_visibility`, `discovery_settings`, `user_locations`, `notification_preferences`, `blocks`, `consents`, `user_roles`, `audit_log`, `rate_limits`.
 Stage B: `encounters`, `notifications`, `push_tokens`.
-Stage C: `connection_requests`, `connections`, `follows`, `conversations`, `conversation_members`, `messages`, `message_attachments`, `message_reactions`, `posts`, `post_media`, `comments`, `reactions`, `bookmarks`, `groups`, `group_members`, `group_invitations`, `events`, `event_rsvps`, `notices`.
+Stage C (as built): `connection_requests`, `follows`, `conversations`, `conversation_members`, `messages` (attachments as a private-storage path on the message), `message_reactions`, `groups`, `group_members` (invitations and join requests are member rows with status `invited`/`requested`), `posts`, `post_media`, `post_reactions`, `post_comments`, `bookmarks`, `events`, `event_rsvps` (invitations are `invited` rows), `notices`. Clients read through RLS-filtered selects or SECURITY DEFINER functions; every write goes through a function that checks membership, blocks and rate limits. `events` has no client table grant at all, so the address can only be read through `event_details()`, which applies the host's address setting.
 Stage D: `reports`, `moderation_actions`, plus moderation views.
 
 Messages are encrypted in transit (TLS) and at rest (Supabase disk encryption). They are **not end-to-end encrypted**; the docs will say so.

@@ -17,3 +17,9 @@ export function timeAgo(iso: string, now: Date = new Date()): string {
 export function clockTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
+
+/** "Sat 14 Oct, 6:30 pm". */
+export function formatEventTime(iso: string): string {
+  const d = new Date(iso);
+  return `${d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })}, ${clockTime(iso)}`;
+}

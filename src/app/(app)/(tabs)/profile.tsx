@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { ProfileView } from '@/components/profile-view';
 import { OwnStats } from '@/components/relationship-actions';
+import { UserPosts } from '@/components/user-posts';
 import { AppText, Button, ErrorView, LoadingView, Screen } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { getProfile } from '@/lib/api';
@@ -50,6 +51,7 @@ export default function MyProfile() {
         <Button title="Edit profile" icon="create-outline" onPress={() => router.push('/edit-profile')} />
         <Button title="Settings & privacy" variant="secondary" icon="settings-outline" onPress={() => router.push('/settings')} />
       </View>
+      <UserPosts userId={profile.id} me={profile.id} />
       <AppText variant="caption" muted>
         This is how you see your own profile. Others only see the fields your privacy settings allow.
       </AppText>

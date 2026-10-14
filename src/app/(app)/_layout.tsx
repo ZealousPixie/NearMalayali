@@ -45,6 +45,14 @@ export default function AppLayout() {
       <Stack.Screen name="new-chat" options={{ title: 'New message' }} />
       <Stack.Screen name="chat/[id]" options={{ title: '' }} />
       <Stack.Screen name="chat-info/[id]" options={{ title: 'Details' }} />
+      <Stack.Screen name="compose-post" options={{ title: 'Post', presentation: 'modal' }} />
+      <Stack.Screen name="post/[id]" options={{ title: 'Post' }} />
+      <Stack.Screen name="group/[id]" options={{ title: 'Group' }} />
+      <Stack.Screen name="group-form" options={{ title: 'Group' }} />
+      <Stack.Screen name="event/[id]" options={{ title: 'Event' }} />
+      <Stack.Screen name="event-form" options={{ title: 'Event' }} />
+      <Stack.Screen name="notice-form" options={{ title: 'New notice' }} />
+      <Stack.Screen name="invite" options={{ title: 'Invite' }} />
       <Stack.Screen name="location-permission" options={{ title: '', presentation: 'modal' }} />
     </Stack>
   );

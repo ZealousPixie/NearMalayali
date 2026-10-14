@@ -15,6 +15,18 @@ export function openNotificationTarget(data: { screen?: unknown; id?: unknown; t
       if (id) router.push({ pathname: '/profile/[id]', params: { id } });
       else router.navigate('/notifications');
       break;
+    case 'post':
+      if (id) router.push({ pathname: '/post/[id]', params: { id } });
+      else router.navigate('/community');
+      break;
+    case 'group':
+      if (id) router.push({ pathname: '/group/[id]', params: { id } });
+      else router.navigate('/community');
+      break;
+    case 'event':
+      if (id) router.push({ pathname: '/event/[id]', params: { id } });
+      else router.navigate('/community');
+      break;
     case 'connections':
       router.push({ pathname: '/connections', params: { tab: typeof data?.tab === 'string' ? data.tab : 'connections' } });
       break;

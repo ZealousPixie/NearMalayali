@@ -51,6 +51,15 @@ Proximity alerts and other notifications are stored in the database and then sen
 
 If any of this is missing, notifications still appear in the in-app notification centre; nothing is shown as sent unless Expo accepted it.
 
+### Chat, feed and events (Stage C)
+
+* **Storage buckets** `chat-media` and `post-media` are created as **private** by the migrations; nothing to do. Photos are served through signed links that expire after an hour.
+* **Realtime:** the migrations add `messages`, `message_reactions`, `conversation_members` and `notifications` to the `supabase_realtime` publication. Check **Database → Publications → supabase_realtime** lists them (if the publication didn't exist when you ran the migrations, toggle those tables on there). Realtime applies the same row-level security, so people only receive messages from their own chats.
+* **Event reminders:** with `pg_cron` enabled, the migration schedules `send_event_reminders()` hourly. If pg_cron was enabled afterwards, run once:
+  ```sql
+  select cron.schedule('event-reminders', '5 * * * *', 'select public.send_event_reminders()');
+  ```
+
 ### Maps (Stage B)
 
 * **iOS** uses Apple Maps: nothing to configure.
