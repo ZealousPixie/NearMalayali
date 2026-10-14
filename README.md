@@ -5,7 +5,7 @@ A privacy-first iOS and Android app that helps Malayalis living outside Kerala f
 * **App:** Expo SDK 57 (React Native 0.86, TypeScript), Expo Router, development builds (not Expo Go).
 * **Backend:** Supabase: Postgres with PostGIS, Row Level Security on every table, SECURITY DEFINER functions for privileged logic, Storage, Edge Functions.
 
-Start with [docs/SETUP.md](docs/SETUP.md). Design decisions and risks are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). How nearby discovery and alerts work, their limits and the device test checklist are in [docs/LOCATION.md](docs/LOCATION.md).
+Start with [docs/SETUP.md](docs/SETUP.md), then [docs/RELEASE.md](docs/RELEASE.md) for builds and store submission and [docs/COSTS.md](docs/COSTS.md) for running costs. Design decisions and risks are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). How nearby discovery and alerts work, their limits and the device test checklist are in [docs/LOCATION.md](docs/LOCATION.md).
 
 ## Project layout
 
@@ -34,7 +34,7 @@ docs/               architecture, setup
 | B. Nearby discovery, map, proximity alerts, push | **Built; database and unit tests pass. Needs two real phones to test (checklist in docs/LOCATION.md).** |
 | C. Connections, messaging, feed, groups, events, noticeboard | **Built; database and unit tests pass. Not yet run on a device.** |
 | D. Reporting, moderation, safety and lifecycle testing | **Built; database and unit tests pass. Battery and device checks need real phones (protocols in docs/LOCATION.md).** |
-| E. Store submission, costs, limitations | Not started |
+| E. Store submission, costs, limitations | **Written:** [RELEASE.md](docs/RELEASE.md), [COSTS.md](docs/COSTS.md), CI workflow, iOS privacy manifest. Store submission itself needs your developer accounts. |
 
 Screens for unbuilt features say "Not yet implemented" with the stage that delivers them; nothing pretends to work.
 
@@ -86,6 +86,10 @@ Screens for unbuilt features say "Not yet implemented" with the stage that deliv
 * `expo export` for iOS and Android: JavaScript bundles build.
 
 Not tested yet: anything on real iOS/Android devices or simulators (including background location, geofencing, maps, push, photo picking and Realtime chat updates), real Supabase Auth email flows, and the Edge Functions against a live project.
+
+### Continuous integration
+
+`.github/workflows/ci.yml` runs type checks, lint and Jest; the pgTAP suite against a PostGIS container; and the Deno checks and tests, on every push and pull request. It needs no secrets. It has not run yet because the project has no GitHub repository; the same commands pass locally.
 
 ### Known gaps
 

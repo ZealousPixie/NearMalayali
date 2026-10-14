@@ -93,7 +93,7 @@ export default function PrivacySettings() {
           onChange={(v) => update({ group_memberships: v })}
         />
         <AppText variant="caption" muted>
-          Messages, connections and groups arrive in a later release; these choices are saved now and will apply then.
+          Your groups aren't listed on your profile yet. This choice is saved and will apply when they are.
         </AppText>
       </Card>
 
@@ -108,11 +108,26 @@ export default function PrivacySettings() {
           onChange={(v) => update({ searchable: v })}
         />
         <Divider />
-        <ToggleRow label="Show when I'm online" value={value.show_online_status} onChange={(v) => update({ show_online_status: v })} />
+        <ToggleRow
+          label="Send read receipts"
+          description="Shows “Seen” in one-to-one chats. Only works when both people have it on."
+          value={value.read_receipts}
+          onChange={(v) => update({ read_receipts: v })}
+        />
         <Divider />
-        <ToggleRow label="Send read receipts" value={value.read_receipts} onChange={(v) => update({ read_receipts: v })} />
+        <ToggleRow
+          label="Show when I'm online"
+          description="Not yet implemented: online status isn't shown to anyone yet. Your choice is saved for when it is."
+          value={value.show_online_status}
+          onChange={(v) => update({ show_online_status: v })}
+        />
         <Divider />
-        <ToggleRow label="Show typing indicator" value={value.typing_indicators} onChange={(v) => update({ typing_indicators: v })} />
+        <ToggleRow
+          label="Show typing indicator"
+          description="Not yet implemented: typing isn't shown to anyone yet. Your choice is saved for when it is."
+          value={value.typing_indicators}
+          onChange={(v) => update({ typing_indicators: v })}
+        />
       </Card>
     </Screen>
   );
