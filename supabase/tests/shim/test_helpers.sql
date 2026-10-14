@@ -75,3 +75,54 @@ end;
 $$;
 
 grant execute on all functions in schema tests to anon, authenticated, service_role;
+
+-- Discovery fixtures --------------------------------------------------------
+create or replace function tests.set_discovery(p_user uuid, p_map boolean default true,
+                                               p_alerts boolean default true, p_alert_radius int default 500)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  update public.discovery_settings
+     set discoverable = true, map_visible = p_map, proximity_alerts = p_alerts, alert_radius_m = p_alert_radius
+   where user_id = p_user
+$$;
+
+-- Puts a user at a position directly (bypassing report_location checks).
+create or replace function tests.place(p_user uuid, p_lat double precision, p_lng double precision,
+                                       p_accuracy real default 10, p_minutes_ago int default 0,
+                                       p_mocked boolean default false)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  insert into public.user_locations (user_id, location, accuracy_m, is_mocked, reported_at)
+  values (p_user, public.make_point(p_lat, p_lng), p_accuracy, p_mocked, now() - make_interval(mins => p_minutes_ago))
+  on conflict (user_id) do update
+    set location = excluded.location, accuracy_m = excluded.accuracy_m,
+        is_mocked = excluded.is_mocked, reported_at = excluded.reported_at
+$$;
+
+-- Makes the user's stored fix look older, so the next report isn't "out of order".
+create or replace function tests.age_location(p_user uuid, p_minutes int)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  update public.user_locations set reported_at = reported_at - make_interval(mins => p_minutes) where user_id = p_user
+$$;
+
+create or replace function tests.login_as_service()
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, true);
+  execute 'set local role service_role';
+end;
+$$;
+
+grant execute on all functions in schema tests to anon, authenticated, service_role;

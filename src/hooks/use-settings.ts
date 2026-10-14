@@ -16,8 +16,8 @@ export function useSettings<T extends object>(
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const update = useCallback(
-    async (patch: Partial<T>) => {
-      if (!value) return;
+    async (patch: Partial<T>): Promise<boolean> => {
+      if (!value) return false;
       const previous = value;
       setValue({ ...value, ...patch });
       setSaving(true);
@@ -25,9 +25,11 @@ export function useSettings<T extends object>(
       try {
         const result = await save(patch);
         if (result) setValue(result);
+        return true;
       } catch (e) {
         setValue(previous);
         setSaveError(friendlyError(e));
+        return false;
       } finally {
         setSaving(false);
       }

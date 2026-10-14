@@ -23,7 +23,19 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.nearmalayali.app"
+      "package": "com.nearmalayali.app",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -43,6 +55,23 @@
           "photosPermission": "NearMalayali uses your photos only when you choose a profile or cover picture.",
           "cameraPermission": false,
           "microphonePermission": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "NearMalayali uses your location while the app is open to show Malayalis near you. Your exact location is never shown to anyone.",
+          "locationAlwaysAndWhenInUsePermission": "If you turn on proximity alerts, NearMalayali checks your location occasionally in the background to tell you when another member is nearby. Your exact location is never shown to anyone.",
+          "locationAlwaysPermission": "If you turn on proximity alerts, NearMalayali checks your location occasionally in the background to tell you when another member is nearby.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#0B6E4F"
         }
       ]
     ],

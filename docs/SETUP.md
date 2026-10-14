@@ -24,11 +24,38 @@ Later stages: a Google Maps API key for Android maps (the mobile Maps SDK is fre
    supabase link --project-ref YOUR-PROJECT-REF      # the ref is in the project URL
    supabase db push                                   # applies supabase/migrations/*
    supabase functions deploy delete-account
+   supabase functions deploy send-push --no-verify-jwt
    ```
 4. In the dashboard, **Database → Extensions**: enable `pg_cron` (used to purge stale locations every 15 min). Then re-run `supabase db push` or run this once in the SQL editor:
    ```sql
    select cron.schedule('purge-stale-locations', '*/15 * * * *', 'select public.purge_stale_locations()');
    ```
+
+### Push notifications (Stage B)
+
+Proximity alerts and other notifications are stored in the database and then sent by the `send-push` function through Expo's free push service.
+
+1. **Extensions:** enable `pg_net` and `pg_cron` (Database → Extensions).
+2. **A shared secret** so only your database can trigger sending. Generate one (e.g. `openssl rand -hex 32`) and:
+   * set it on the function: `supabase secrets set PUSH_DISPATCH_SECRET=<value>`
+   * store it, and your project URL, in Vault (SQL editor):
+     ```sql
+     select vault.create_secret('https://YOUR-PROJECT-REF.supabase.co', 'project_url');
+     select vault.create_secret('<the same value>', 'push_dispatch_secret');
+     select cron.schedule('push-dispatch', '* * * * *', 'select public.kick_push_dispatch()');
+     ```
+3. **Apple (iOS push):** run `npx eas-cli@latest credentials` → iOS → Push Notifications → let EAS create an APNs key. Needs the Apple Developer account.
+4. **Google (Android push):** create a Firebase project, add an Android app with package `com.nearmalayali.app`, download `google-services.json`, and upload the FCM V1 service-account key in `eas credentials` → Android → Google Service Account → FCM V1. Add `"googleServicesFile": "./google-services.json"` under `android` in app.json (don't commit the file if your repo is public).
+5. **EAS project ID:** `npx eas-cli@latest init` links the app to an EAS project; set `EAS_PROJECT_ID` (shown by that command) in EAS environment variables and in `.env` for local builds. Push registration needs it.
+6. Optional: set `EXPO_ACCESS_TOKEN` on the function (`supabase secrets set`) if you enable "enhanced push security" in Expo.
+
+If any of this is missing, notifications still appear in the in-app notification centre; nothing is shown as sent unless Expo accepted it.
+
+### Maps (Stage B)
+
+* **iOS** uses Apple Maps: nothing to configure.
+* **Android** uses Google Maps. In Google Cloud Console create a project, enable *Maps SDK for Android*, create an API key **restricted to Android apps** with package `com.nearmalayali.app` and your signing certificate SHA-1 (`eas credentials` shows it). Set it as `GOOGLE_MAPS_ANDROID_API_KEY` in EAS environment variables (or `.env` for local builds). Mobile map loads are free, but Google requires a billing account.
+* **Town search** uses the phone's geocoder, falling back to OpenStreetMap Nominatim on Android when location permission isn't granted. Nominatim is free for low volume (max 1 request/second); swap in a paid geocoder (e.g. Mapbox, Google Geocoding) in `src/lib/geo.ts` if usage grows.
 
 ### Auth settings (Dashboard → Authentication)
 
@@ -79,6 +106,7 @@ npm test            # unit + screen tests (Jest)
 npm run typecheck   # TypeScript
 npm run lint        # ESLint
 npm run test:db     # database security tests (needs Postgres + PostGIS + pgTAP, see below)
+deno test supabase/functions/   # Edge Function unit tests (needs Deno)
 ```
 
 `npm run test:db` creates a throwaway database, applies a small shim that imitates Supabase's auth roles (`supabase/tests/shim`), applies every migration and runs the pgTAP files in `supabase/tests/database`. It needs `psql`, `pg_prove`, PostGIS and pgTAP. On Ubuntu: `apt install postgresql-16 postgresql-16-postgis-3 postgresql-16-pgtap libtap-parser-sourcehandler-pgtap-perl`.
@@ -87,4 +115,4 @@ If you have Docker, `supabase start` runs the full local stack instead; the shim
 
 ## 6. Production builds and stores
 
-Covered in detail in Stage E. In short: `eas build --profile production`, then `eas submit`. Before submitting, replace the draft legal texts in `src/lib/legal.ts` with lawyer-reviewed versions and host the privacy policy at a public URL (both stores require one).
+Location-specific store requirements are in [LOCATION.md](LOCATION.md#store-review-notes). Full submission steps are covered in Stage E. In short: `eas build --profile production`, then `eas submit`. Before submitting, replace the draft legal texts in `src/lib/legal.ts` with lawyer-reviewed versions and host the privacy policy at a public URL (both stores require one).

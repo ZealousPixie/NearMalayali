@@ -14,6 +14,12 @@ const SERVER_CODES: Record<string, string> = {
   ACCOUNT_SUSPENDED: 'This account has been suspended. Contact support if you think this is a mistake.',
   PAUSE_TOO_LONG: 'You can pause discovery for up to 30 days at a time.',
   CONFIRMATION_REQUIRED: 'Please confirm that you want to delete your account.',
+  DISCOVERY_OFF: 'Turn on discovery to see who is around you. You can still explore other towns.',
+  LOCATION_STALE: 'We need a fresh location to show people near you.',
+  LOCATION_INVALID: 'That location doesn\'t look right.',
+  RADIUS_INVALID: 'Please choose one of the listed distances.',
+  RADIUS_TOO_SMALL_FOR_AREA_SEARCH: 'When exploring another town, choose 5 km or more.',
+  NOT_ALLOWED: 'This isn\'t available for your account right now.',
 };
 
 // Messages from Supabase Auth (GoTrue), matched case-insensitively.

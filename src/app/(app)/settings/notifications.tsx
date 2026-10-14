@@ -1,7 +1,10 @@
-import { AppText, Banner, Card, Divider, ErrorView, LoadingView, Screen, ToggleRow } from '@/components/ui';
+import { useState } from 'react';
+
+import { AppText, Banner, Button, Card, Divider, ErrorView, LoadingView, Screen, ToggleRow } from '@/components/ui';
 import { useSettings } from '@/hooks/use-settings';
 import { fetchNotificationPreferences, updateNotificationPreferences } from '@/lib/api';
 import { friendlyError } from '@/lib/errors';
+import { registerForPush } from '@/lib/push';
 import type { NotificationPreferences } from '@/lib/types';
 
 const CATEGORIES: { key: keyof NotificationPreferences; label: string }[] = [
@@ -27,10 +30,7 @@ export default function NotificationSettings() {
   return (
     <Screen edges={['bottom']}>
       {saveError ? <Banner message={saveError} /> : null}
-      <Banner
-        tone="info"
-        message="Push notifications are connected in the next release. Your choices are saved now and will be respected from then on."
-      />
+      <PushStatus />
       <Card>
         <ToggleRow
           label="Push notifications"
@@ -65,6 +65,33 @@ export default function NotificationSettings() {
         </AppText>
       </Card>
     </Screen>
+  );
+}
+
+function PushStatus() {
+  const [state, setState] = useState<'idle' | 'busy' | 'ok' | string>('idle');
+  async function enable() {
+    setState('busy');
+    const r = await registerForPush(true);
+    setState(
+      r.ok
+        ? 'ok'
+        : r.reason === 'PERMISSION_DENIED'
+          ? 'Notifications are blocked for NearMalayali in your phone settings.'
+          : r.reason === 'NOT_A_DEVICE'
+            ? 'Push notifications only work on a real phone.'
+            : r.reason === 'NO_PROJECT_ID'
+              ? 'This build is missing its EAS project ID, so push can\'t be set up.'
+              : 'Push setup failed. Please try again later.',
+    );
+  }
+  return (
+    <Card>
+      <AppText muted>Notifications always appear in the app's notification centre. Push shows them on your phone too.</AppText>
+      {state === 'ok' ? <Banner tone="success" message="This phone is set up for push notifications." /> : null}
+      {state !== 'idle' && state !== 'busy' && state !== 'ok' ? <Banner tone="warning" message={state} /> : null}
+      {state !== 'ok' ? <Button title="Allow push on this phone" variant="secondary" onPress={enable} loading={state === 'busy'} /> : null}
+    </Card>
   );
 }
 

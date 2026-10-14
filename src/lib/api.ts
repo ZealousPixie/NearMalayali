@@ -176,3 +176,107 @@ export async function verifyPassword(email: string, password: string): Promise<v
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
 }
+
+// ---- Discovery (Stage B) ------------------------------------------------------
+export interface NearbyPerson extends PersonSummary {
+  is_connected: boolean;
+  distance_label: string;
+  distance_order: number;
+  interests: string[] | null;
+  connection_preferences: string[] | null;
+}
+
+export async function nearbyUsers(args: {
+  radius: number;
+  center?: { lat: number; lng: number } | null;
+  interests?: string[];
+  preferences?: string[];
+  offset?: number;
+  limit?: number;
+}): Promise<NearbyPerson[]> {
+  const { data, error } = await supabase.rpc('nearby_users', {
+    p_radius_m: args.radius,
+    p_center_lat: args.center?.lat ?? null,
+    p_center_lng: args.center?.lng ?? null,
+    p_interests: args.interests?.length ? args.interests : null,
+    p_preferences: args.preferences?.length ? args.preferences : null,
+    p_limit: args.limit ?? 30,
+    p_offset: args.offset ?? 0,
+  });
+  if (error) throw error;
+  return (data ?? []) as NearbyPerson[];
+}
+
+export async function areaSummary(center: { lat: number; lng: number }, radius: number): Promise<{ count: number | null; fewer_than?: number }> {
+  const { data, error } = await supabase.rpc('area_summary', {
+    p_center_lat: center.lat,
+    p_center_lng: center.lng,
+    p_radius_m: radius,
+  });
+  if (error) throw error;
+  return data as { count: number | null; fewer_than?: number };
+}
+
+export interface MapCell {
+  cell_lat: number;
+  cell_lng: number;
+  member_count: number;
+}
+
+export async function mapCells(center: { lat: number; lng: number }, radius: number): Promise<MapCell[]> {
+  const { data, error } = await supabase.rpc('map_cells', {
+    p_center_lat: center.lat,
+    p_center_lng: center.lng,
+    p_radius_m: radius,
+  });
+  if (error) throw error;
+  return (data ?? []) as MapCell[];
+}
+
+export async function myLocationStatus(): Promise<{ has_location: boolean; reported_at?: string; accuracy_m?: number }> {
+  const { data, error } = await supabase.rpc('my_location_status');
+  if (error) throw error;
+  return data as { has_location: boolean; reported_at?: string; accuracy_m?: number };
+}
+
+// ---- Notifications ----------------------------------------------------------------
+export interface AppNotification {
+  id: number;
+  kind: string;
+  title: string;
+  body: string;
+  data: { screen?: string; [k: string]: unknown };
+  read_at: string | null;
+  created_at: string;
+}
+
+export async function fetchNotifications(before?: string, limit = 30): Promise<AppNotification[]> {
+  let q = supabase
+    .from('notifications')
+    .select('id, kind, title, body, data, read_at, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (before) q = q.lt('created_at', before);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as AppNotification[];
+}
+
+export async function unreadNotificationCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .is('read_at', null);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function markNotificationsRead(ids: number[]): Promise<void> {
+  const { error } = await supabase.rpc('mark_notifications_read', { p_ids: ids });
+  if (error) throw error;
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  const { error } = await supabase.rpc('mark_all_notifications_read');
+  if (error) throw error;
+}

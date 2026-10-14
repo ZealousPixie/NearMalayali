@@ -1,3 +1,5 @@
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 
 import {
@@ -17,6 +19,9 @@ import { useSettings } from '@/hooks/use-settings';
 import { fetchDiscoverySettings, updateDiscoverySettings } from '@/lib/api';
 import { friendlyError } from '@/lib/errors';
 import { formatDistance } from '@/lib/format';
+import { getPermissionState, syncBackgroundTracking } from '@/lib/location';
+import { registerForPush } from '@/lib/push';
+import type { DiscoverySettings } from '@/lib/types';
 
 const SEARCH_RADII = [100, 250, 500, 1000, 5000, 10000, 25000, 50000];
 const ALERT_RADII = [100, 250, 500, 1000, 2000, 5000];
@@ -29,7 +34,46 @@ const PAUSES: { label: string; hours: number }[] = [
 ];
 
 export default function DiscoverySettingsScreen() {
-  const { value, loadError, saveError, saving, reload, update } = useSettings(fetchDiscoverySettings, updateDiscoverySettings);
+  const { value, loadError, saveError, saving, reload, update: save } = useSettings(fetchDiscoverySettings, updateDiscoverySettings);
+  const [backgroundOk, setBackgroundOk] = useState<boolean | null>(null);
+  const [pushNote, setPushNote] = useState<string | null>(null);
+
+  const syncTracking = useCallback(async (s: DiscoverySettings | null) => {
+    if (!s) return;
+    const paused = !!s.paused_until && new Date(s.paused_until) > new Date();
+    const running = await syncBackgroundTracking({ wantsAlerts: s.discoverable && s.proximity_alerts && !paused }).catch(() => false);
+    const perms = await getPermissionState();
+    setBackgroundOk(running || !s.proximity_alerts ? true : perms.background === 'granted');
+  }, []);
+
+  // Re-check when returning from the permission screen.
+  useFocusEffect(
+    useCallback(() => {
+      syncTracking(value);
+    }, [syncTracking, value]),
+  );
+
+  async function update(patch: Partial<DiscoverySettings>) {
+    if (!(await save(patch)) || !value) return;
+    const next = { ...value, ...patch };
+    if (patch.proximity_alerts === true) {
+      const perms = await getPermissionState();
+      if (perms.background !== 'granted') {
+        router.push({ pathname: '/location-permission', params: { purpose: 'alerts' } });
+      }
+      const push = await registerForPush(true);
+      setPushNote(
+        push.ok
+          ? null
+          : push.reason === 'PERMISSION_DENIED'
+            ? 'Notifications are turned off for NearMalayali, so alerts will only appear inside the app. You can allow them in your phone\'s settings.'
+            : push.reason === 'NOT_A_DEVICE'
+              ? 'Push notifications need a real phone; alerts will appear inside the app.'
+              : 'We couldn\'t set up push notifications right now; alerts will appear inside the app.',
+      );
+    }
+    await syncTracking(next);
+  }
 
   if (loadError) return <ErrorView message={friendlyError(loadError)} onRetry={reload} />;
   if (!value) return <LoadingView />;
@@ -40,10 +84,14 @@ export default function DiscoverySettingsScreen() {
   return (
     <Screen edges={['bottom']}>
       {saveError ? <Banner message={saveError} /> : null}
-      <Banner
-        tone="info"
-        message="Location sharing is not active in this build yet. These choices are saved and enforced by the server, and will apply as soon as nearby discovery ships."
-      />
+      {value.proximity_alerts && backgroundOk === false ? (
+        <Banner
+          tone="warning"
+          message="Proximity alerts need background location access, which isn't allowed yet. You'll still appear to others and see nearby lists while the app is open."
+          action={<Button title="Allow background location" variant="secondary" onPress={() => router.push({ pathname: '/location-permission', params: { purpose: 'alerts' } })} />}
+        />
+      ) : null}
+      {pushNote ? <Banner tone="warning" message={pushNote} /> : null}
 
       <Card>
         <ToggleRow

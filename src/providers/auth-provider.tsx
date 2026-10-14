@@ -3,6 +3,8 @@ import { createContext, type PropsWithChildren, useCallback, useContext, useEffe
 
 import { fetchOwnProfile } from '@/lib/api';
 import { env } from '@/lib/env';
+import { stopAllTracking } from '@/lib/location';
+import { unregisterPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/lib/types';
 
@@ -78,6 +80,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [loadProfile]);
 
   const signOut = useCallback(async () => {
+    // Stop background location and detach this device's push token first,
+    // while we still have a session to do it with.
+    await stopAllTracking().catch(() => undefined);
+    await unregisterPush().catch(() => undefined);
     // Local sign-out still succeeds when offline; the server session expires.
     const { error } = await supabase.auth.signOut();
     if (error) await supabase.auth.signOut({ scope: 'local' });
