@@ -630,6 +630,34 @@ as $$
      and (select read_receipts from public.profile_visibility v where v.user_id = m.user_id)
 $$;
 
+-- Header and member list for the chat screen.
+create or replace function public.conversation_details(p_conversation uuid)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select jsonb_build_object(
+    'id', c.id, 'kind', c.kind, 'title', c.title, 'group_id', c.group_id,
+    'my_role', me.role, 'my_status', me.status,
+    'muted_until', me.muted_until,
+    'members', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'user_id', p.id, 'display_name', p.display_name, 'username', p.username,
+               'avatar_path', p.avatar_path, 'role', m.role, 'status', m.status)
+             order by m.role, p.display_name)
+        from public.conversation_members m
+        join public.profiles p on p.id = m.user_id
+       where m.conversation_id = c.id and m.status in ('active', 'request')
+         and p.account_status = 'active'
+         and (p.id = me.user_id or not public.is_blocked_between(me.user_id, p.id))), '[]'::jsonb)
+  )
+    from public.conversations c
+    join public.conversation_members me on me.conversation_id = c.id and me.user_id = (select auth.uid())
+   where c.id = p_conversation and me.status in ('active', 'request')
+$$;
+
 revoke execute on function
   public.start_direct_conversation(uuid), public.create_group_conversation(text, uuid[]),
   public.send_message(uuid, text, text, bigint, text, jsonb), public.delete_message(bigint),
@@ -638,7 +666,7 @@ revoke execute on function
   public.leave_conversation(uuid), public.add_conversation_members(uuid, uuid[]),
   public.remove_conversation_member(uuid, uuid), public.set_conversation_admin(uuid, uuid, boolean),
   public.rename_conversation(uuid, text), public.list_conversations(text), public.unread_message_count(),
-  public.search_messages(text), public.conversation_read_state(uuid)
+  public.search_messages(text), public.conversation_read_state(uuid), public.conversation_details(uuid)
   from public, anon;
 grant execute on function
   public.start_direct_conversation(uuid), public.create_group_conversation(text, uuid[]),
@@ -648,7 +676,7 @@ grant execute on function
   public.leave_conversation(uuid), public.add_conversation_members(uuid, uuid[]),
   public.remove_conversation_member(uuid, uuid), public.set_conversation_admin(uuid, uuid, boolean),
   public.rename_conversation(uuid, text), public.list_conversations(text), public.unread_message_count(),
-  public.search_messages(text), public.conversation_read_state(uuid)
+  public.search_messages(text), public.conversation_read_state(uuid), public.conversation_details(uuid)
   to authenticated;
 
 -- ---------------------------------------------------------------------------

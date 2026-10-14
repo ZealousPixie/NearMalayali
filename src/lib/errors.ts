@@ -20,6 +20,21 @@ const SERVER_CODES: Record<string, string> = {
   RADIUS_INVALID: 'Please choose one of the listed distances.',
   RADIUS_TOO_SMALL_FOR_AREA_SEARCH: 'When exploring another town, choose 5 km or more.',
   NOT_ALLOWED: 'This isn\'t available for your account right now.',
+  USER_UNAVAILABLE: 'This member isn\'t available.',
+  NOT_ACCEPTING_REQUESTS: 'This member isn\'t accepting connection requests.',
+  REQUEST_NOT_FOUND: 'That request is no longer pending.',
+  MESSAGES_RESTRICTED: 'This member only accepts messages from their connections.',
+  REQUEST_PENDING: 'You can send up to 3 messages until they accept your message request.',
+  CONVERSATION_NOT_FOUND: 'This conversation isn\'t available.',
+  MESSAGE_NOT_FOUND: 'That message is no longer available.',
+  MESSAGE_INVALID: 'Type a message first.',
+  MESSAGE_TOO_LONG: 'Messages can be up to 4,000 characters.',
+  ATTACHMENT_INVALID: 'That attachment couldn\'t be sent.',
+  REPLY_INVALID: 'The message you replied to is no longer available.',
+  TITLE_INVALID: 'Enter a name of up to 80 characters.',
+  MEMBERS_INVALID: 'Choose between 1 and 100 people.',
+  PHOTO_PERMISSION_DENIED: 'Allow photo access in your phone\'s Settings to share photos.',
+  IMAGE_TOO_LARGE: 'That photo is too large. Please choose another.',
 };
 
 // Messages from Supabase Auth (GoTrue), matched case-insensitively.

@@ -1,7 +1,7 @@
 -- Stage C: direct and group messaging, message requests and media access.
 begin;
 set search_path to public, extensions;
-select plan(29);
+select plan(31);
 
 create temp table u (name text primary key, id uuid);
 grant select on u to authenticated;
@@ -39,6 +39,7 @@ select tests.login_as(pg_temp.uid('biju'));
 select is((select body from public.messages where id = (select id from m where name = 'hello')), 'Namaskaram!', 'recipient reads the message');
 select is((select unread_count from public.list_conversations()), 1, 'recipient has one unread');
 select is(public.unread_message_count(), 1, 'total unread is 1');
+select is(jsonb_array_length(public.conversation_details((select id from c where name = 'ab')) -> 'members'), 2, 'members see the member list');
 select public.mark_conversation_read((select id from c where name = 'ab'), (select id from m where name = 'hello'));
 select is(public.unread_message_count(), 0, 'marking read clears unread');
 select lives_ok($$select public.react_to_message((select id from m where name = 'hello'), '🙏')$$, 'recipient reacts');
@@ -56,6 +57,7 @@ select is((select count(*)::int from public.messages), 0, 'outsiders cannot read
 select is((select count(*)::int from public.conversations), 0, 'outsiders cannot see conversations');
 select throws_ok($$select public.send_message((select id from c where name = 'ab'), 'hi')$$, 'PT404', 'CONVERSATION_NOT_FOUND',
                  'outsiders cannot post into a chat');
+select is(public.conversation_details((select id from c where name = 'ab')), null, 'outsiders get no conversation details');
 
 -- Message requests from a stranger
 insert into c values ('cb', public.start_direct_conversation(pg_temp.uid('biju')));

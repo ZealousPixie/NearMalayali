@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 
 import { ProfileView } from '@/components/profile-view';
+import { RelationshipActions } from '@/components/relationship-actions';
 import { Banner, Button, EmptyState, ErrorView, LoadingView, NotYetAvailable, Screen } from '@/components/ui';
 import { blockUser, getProfile } from '@/lib/api';
 import { useAsync } from '@/hooks/use-async';
@@ -54,11 +55,7 @@ export default function OtherProfile() {
     <Screen edges={['bottom']}>
       <ProfileView profile={profile} />
       {actionError ? <Banner message={actionError} /> : null}
-      <NotYetAvailable
-        stage="Stage C"
-        feature="Connect, follow and message"
-        details="Connection requests, following and messaging arrive with the social features."
-      />
+      <RelationshipActions userId={profile.id} name={profile.display_name} />
       <Button title={`Block ${profile.display_name}`} variant="danger" icon="ban" onPress={confirmBlock} />
       <NotYetAvailable stage="Stage D" feature="Report this profile" details="Reporting to moderators arrives with the safety tools. Blocking works now." />
     </Screen>

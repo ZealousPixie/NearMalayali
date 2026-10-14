@@ -41,6 +41,10 @@ export default function AppLayout() {
       <Stack.Screen name="settings/blocked" options={{ title: 'Blocked people' }} />
       <Stack.Screen name="settings/account" options={{ title: 'Account' }} />
       <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
+      <Stack.Screen name="connections" options={{ title: 'Connections' }} />
+      <Stack.Screen name="new-chat" options={{ title: 'New message' }} />
+      <Stack.Screen name="chat/[id]" options={{ title: '' }} />
+      <Stack.Screen name="chat-info/[id]" options={{ title: 'Details' }} />
       <Stack.Screen name="location-permission" options={{ title: '', presentation: 'modal' }} />
     </Stack>
   );
