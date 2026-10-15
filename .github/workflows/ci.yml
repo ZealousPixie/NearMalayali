@@ -25,20 +25,17 @@ jobs:
   database:
     name: Database security tests (pgTAP)
     runs-on: ubuntu-24.04
-    services:
-      postgres:
-        image: postgis/postgis:16-3.4
-        env:
-          POSTGRES_PASSWORD: postgres
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
-      - name: Install pgTAP into the database container and pg_prove on the runner
+      # Postgres 16 + PostGIS + pgTAP straight from Ubuntu's packages on the
+      # runner (the postgis Docker image is built on Debian bullseye, whose
+      # package mirror no longer serves pgTAP).
+      - name: Install and start Postgres 16 with PostGIS and pgTAP
         run: |
-          docker exec ${{ job.services.postgres.id }} bash -c "apt-get update -qq && apt-get install -y -qq postgresql-16-pgtap"
-          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client libtap-parser-sourcehandler-pgtap-perl
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-16 postgresql-16-postgis-3 postgresql-16-pgtap libtap-parser-sourcehandler-pgtap-perl
+          sudo systemctl start postgresql
+          sudo -u postgres psql -q -c "alter user postgres password 'postgres'"
       - run: ./scripts/db-test.sh
         env:
           PGHOST: localhost
@@ -53,5 +50,9 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno check supabase/functions/*/index.ts
-      - run: deno test supabase/functions/
+      # Run from the functions folder so its deno.json applies (npm packages
+      # from Deno's cache, not the app's node_modules).
+      - run: deno check */index.ts
+        working-directory: supabase/functions
+      - run: deno test
+        working-directory: supabase/functions
